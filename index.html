@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock OG Olympics</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body { font-family: sans-serif; margin: 0; padding: 0; background-color: #f0f2f5; color: #333; padding-bottom: 50px; }
+        .header { background-color: #fff; padding: 15px; text-align: center; border-bottom: 2px solid #FFD700; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        
+        .rings { display: flex; justify-content: center; gap: 4px; margin-bottom: 8px; }
+        .ring { width: 16px; height: 16px; border-radius: 50%; border: 2.5px solid; }
+        .r-blue { border-color: #0081C8; }
+        .r-yellow { border-color: #FCB131; margin-top: 8px; }
+        .r-black { border-color: #000000; }
+        .r-green { border-color: #00A651; margin-top: 8px; }
+        .r-red { border-color: #EE334E; }
+        
+        .tabs { display: flex; background: #fff; border-bottom: 1px solid #ddd; position: sticky; top: 0; z-index: 100; }
+        .tab { flex: 1; padding: 15px; text-align: center; cursor: pointer; font-weight: bold; color: #777; transition: 0.3s; font-size: 15px; }
+        .tab.active { color: #0081C8; border-bottom: 3px solid #0081C8; background-color: #f9f9f9; }
+        
+        .content { display: none; padding: 15px; }
+        .content.active { display: block; animation: fadeIn 0.3s ease-out; }
+        
+        .balance-box { background: #fff; padding: 30px 20px; border-radius: 12px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.08); border: 1px solid #FFD700; margin-top: 10px; }
+        .balance-label { font-size: 18px; color: #333; font-weight: bold; margin-bottom: 15px; }
+        
+        .btn { display: block; width: 100%; padding: 16px; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s; -webkit-tap-highlight-color: transparent; margin-top: 15px; }
+        .btn-primary { background: #0081C8; box-shadow: 0 4px 0 #005a8c; }
+        .btn-primary:active { background: #005a8c; transform: translateY(2px); box-shadow: 0 2px 0 #005a8c; }
+        .btn-success { background: #00A651; box-shadow: 0 4px 0 #008f46; }
+        .btn-success:active { background: #008f46; transform: translateY(2px); box-shadow: 0 2px 0 #008f46; }
+        .btn-warning { background: #FCB131; box-shadow: 0 4px 0 #d99625; margin-top: 0; margin-bottom: 15px; }
+        .btn-warning:active { background: #d99625; transform: translateY(2px); box-shadow: 0 2px 0 #d99625; }
+        
+        .input-field { width: 100%; padding: 15px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; text-align: center; }
+        .input-field:focus { outline: none; border-color: #0081C8; }
+
+        .phrase-box { font-family: monospace; font-size: 18px; font-weight: bold; color: #EE334E; background: #ffe6e6; padding: 15px; border-radius: 8px; margin: 15px 0; letter-spacing: 1px; border: 1px dashed #EE334E; word-break: break-all; }
+
+        .event-list-card { background: #fff; padding: 15px; border-radius: 10px; margin-bottom: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 5px solid #0081C8; cursor: pointer; transition: transform 0.1s; }
+        .event-list-card:active { transform: scale(0.98); }
+        .event-list-title { font-weight: bold; font-size: 16px; margin-bottom: 5px; color: #111; }
+        .event-list-action { font-size: 13px; color: #0081C8; font-weight: bold; margin-top: 8px; }
+
+        .btn-back { display: block; width: 100%; padding: 12px; background: #e4e6eb; color: #333; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; margin-bottom: 15px; text-align: left; transition: background 0.2s; }
+        .btn-back:active { background: #d0d2d6; }
+
+        .waiting-container { background: #fff; padding: 40px 20px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); text-align: center; margin-bottom: 15px; border: 2px dashed #ccc; display: block; }
+        .waiting-title { font-size: 18px; color: #555; margin-bottom: 15px; font-weight: bold; }
+        .timer-value { font-family: monospace; font-size: 32px; font-weight: bold; color: #0081C8; background: #f4f4f9; padding: 15px; border-radius: 8px; border: 1px solid #ddd; letter-spacing: 2px; display: inline-block; }
+
+        .player-container { display: none; margin-bottom: 15px; }
+        .video-wrapper { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); background: #000; }
+        .video-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+        
+        .stream-info { background: #fff; padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align: center; }
+        .stream-title { font-size: 18px; font-weight: bold; margin: 10px 0 5px 0; color: #000; }
+        
+        .stream-status { display: none; align-items: center; justify-content: center; color: #EE334E; font-size: 14px; font-weight: bold; text-transform: uppercase; }
+        .live-dot { height: 10px; width: 10px; background-color: #EE334E; border-radius: 50%; display: inline-block; margin-right: 8px; animation: pulse 1.5s infinite; }
+        
+        .medals-box { background: #fff; padding: 15px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .medals-title { font-size: 16px; font-weight: bold; margin: 0 0 15px 0; text-align: center; color: #555; }
+        .medal-item { display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
+        .medal-item:last-child { border-bottom: none; }
+        .medal-icon { font-size: 24px; margin-right: 15px; width: 30px; text-align: center; }
+        .winner-name { font-weight: bold; font-size: 15px; }
+        .winner-team { font-size: 13px; color: #777; }
+
+        .gold { color: #FFD700; text-shadow: 0 0 5px rgba(255,215,0,0.5); }
+        .silver { color: #C0C0C0; text-shadow: 0 0 5px rgba(192,192,192,0.5); }
+        .bronze { color: #CD7F32; text-shadow: 0 0 5px rgba(205,127,50,0.5); }
+
+        @keyframes slideUpFade {
+            0% { opacity: 0; transform: translateY(15px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeIn { 
+            0% { opacity: 0; } 
+            100% { opacity: 1; } 
+        }
+
+        #events-list-view, #event-detail-view, #reg-step-1, #reg-step-2, #reg-success {
+            animation: slideUpFade 0.35s ease-out;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="rings">
+            <div class="ring r-blue"></div>
+            <div class="ring r-yellow"></div>
+            <div class="ring r-black"></div>
+            <div class="ring r-green"></div>
+            <div class="ring r-red"></div>
+        </div>
+        <h2 style="margin: 0; font-size: 20px;">Stock OG Olympics</h2>
+    </div>
+    
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab(event, 'events')">📅 События</div>
+        <div class="tab" onclick="switchTab(event, 'register')">📝 Регистрация</div>
+    </div>
+
+    <div id="events" class="content active">
+        <div id="events-list-view">
+            <div style="text-align:center; padding: 20px; color:#666;">🔄 Загрузка...</div>
+        </div>
+
+        <div id="event-detail-view" style="display: none;">
+            <button class="btn-back" onclick="goBackToEvents()">🔙 Назад</button>
+            
+            <div id="waiting-container" class="waiting-container">
+                <div class="waiting-title">⏳ Старт через:</div>
+                <div id="timer-value" class="timer-value">00:00:00:00</div>
+            </div>
+
+            <div id="player-container" class="player-container">
+                <div id="player-placement" class="video-wrapper"></div>
+                <div class="stream-info">
+                    <div id="live-status" class="stream-status">
+                        <span class="live-dot"></span>🔴 LIVE
+                    </div>
+                    <p id="event-title" class="stream-title">🔄 Загрузка...</p>
+                </div>
+            </div>
+
+            <button id="btn-qualification" class="btn btn-warning" style="display: none;" onclick="joinQualification()">🏁 Пройти Отбор</button>
+
+            <div class="medals-box">
+                <div id="pedestal-title" class="medals-title">🏆 Пьедестал</div>
+                <div class="medal-item">
+                    <div class="medal-icon gold">🥇</div>
+                    <div>
+                        <div id="gold-winner" class="winner-name">👤 ...</div>
+                        <div id="gold-team" class="winner-team">🏳️ ...</div>
+                    </div>
+                </div>
+                <div class="medal-item">
+                    <div class="medal-icon silver">🥈</div>
+                    <div>
+                        <div id="silver-winner" class="winner-name">👤 ...</div>
+                        <div id="silver-team" class="winner-team">🏳️ ...</div>
+                    </div>
+                </div>
+                <div class="medal-item">
+                    <div class="medal-icon bronze">🥉</div>
+                    <div>
+                        <div id="bronze-winner" class="winner-name">👤 ...</div>
+                        <div id="bronze-team" class="winner-team">🏳️ ...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="register" class="content">
+        <div class="balance-box">
+            
+            <div id="reg-step-1">
+                <div class="balance-label">Привязка аккаунта Roblox</div>
+                <p style="font-size: 14px; color: #666; margin-bottom: 20px;">Введите ваш точный никнейм из Roblox.</p>
+                <input type="text" id="roblox-username" class="input-field" placeholder="Ваш никнейм">
+                <button class="btn btn-primary" onclick="startRegistration()">Зарегистрироваться</button>
+            </div>
+
+            <div id="reg-step-2" style="display: none;">
+                <div class="balance-label">Верификация профиля</div>
+                <p style="font-size: 14px; color: #555;">Вставьте эту фразу в <b>описание профиля</b> Roblox:</p>
+                <div id="verify-phrase" class="phrase-box"></div>
+                <p style="font-size: 13px; color: #888;">Не убирайте фразу до завершения проверки.</p>
+                <button class="btn btn-success" onclick="finishRegistration()">Я добавил фразу</button>
+            </div>
+
+            <div id="reg-success" style="display: none;">
+                <div style="font-size: 50px; margin-bottom: 10px;">✅</div>
+                <div class="balance-label">Аккаунт привязан</div>
+                <p style="font-size: 16px; color: #333;">Ваш никнейм: <br><b id="display-username" style="color: #0081C8; font-size: 20px;"></b></p>
+                <p style="font-size: 14px; color: #666; margin-top: 15px;">Теперь вы можете участвовать в отборах.</p>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.headerColor = '#ffffff';
+
+        const BACKEND_URL = "https://olympstockicsog--peoplemakecheer.replit.app"; 
+
+        const tgUserId = tg.initDataUnsafe?.user?.id || 123456789;
+
+        let allEventsData = [];
+        let activeEventId = null;
+        let targetEventTime = null;
+        let iframeLoaded = false;
+        let currentChannel = "";
+        let isUserRegistered = false;
+
+        async function fetchLiveUpdates() {
+            try {
+                let response = await fetch(`${BACKEND_URL}/api/data?tg_id=${tgUserId}`);
+                let data = await response.json();
+                
+                isUserRegistered = data.user.is_registered;
+                updateRegistrationUI(data.user);
+
+                allEventsData = data.events;
+                renderEventsList();
+
+                if (activeEventId) {
+                    let activeEvent = allEventsData.find(e => e.id === activeEventId);
+                    if (activeEvent) {
+                        updateActiveEventUI(activeEvent);
+                    }
+                }
+            } catch (error) {
+                console.error("Ошибка загрузки данных с сервера", error);
+            }
+        }
+
+        function updateRegistrationUI(user) {
+            if (user.is_registered) {
+                document.getElementById('reg-step-1').style.display = 'none';
+                
+                if (!user.is_verified && user.verify_phrase) {
+                    document.getElementById('reg-step-2').style.display = 'block';
+                    document.getElementById('verify-phrase').innerText = user.verify_phrase;
+                    document.getElementById('reg-success').style.display = 'none';
+                } else {
+                    document.getElementById('reg-step-2').style.display = 'none';
+                    document.getElementById('reg-success').style.display = 'block';
+                    document.getElementById('display-username').innerText = user.roblox_name;
+                }
+            } else {
+                document.getElementById('reg-step-1').style.display = 'block';
+                document.getElementById('reg-step-2').style.display = 'none';
+                document.getElementById('reg-success').style.display = 'none';
+            }
+        }
+
+        async function startRegistration() {
+            let usernameInput = document.getElementById('roblox-username').value.trim();
+            if (usernameInput === "") {
+                tg.showPopup({ title: 'Ошибка', message: 'Введите никнейм.', buttons: [{type: 'ok'}] });
+                return;
+            }
+
+            try {
+                let response = await fetch(`${BACKEND_URL}/api/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tg_id: tgUserId, roblox_name: usernameInput })
+                });
+                
+                let result = await response.json();
+                if (result.success) {
+                    document.getElementById('reg-step-1').style.display = 'none';
+                    document.getElementById('verify-phrase').innerText = result.phrase;
+                    
+                    let step2 = document.getElementById('reg-step-2');
+                    step2.style.animation = 'none';
+                    step2.offsetHeight;
+                    step2.style.animation = null;
+                    step2.style.display = 'block';
+                    
+                    isUserRegistered = true;
+                }
+            } catch (error) {
+                console.error("Ошибка регистрации", error);
+                tg.showPopup({ title: 'Ошибка', message: 'Не удалось подключиться к серверу', buttons: [{type: 'ok'}] });
+            }
+        }
+
+        function finishRegistration() {
+            tg.showPopup({
+                title: 'Ожидание проверки',
+                message: 'Отлично! Скоро система проверит ваше описание профиля.',
+                buttons: [{type: 'ok'}]
+            });
+            fetchLiveUpdates();
+        }
+
+        function updateTimer() {
+            if (!activeEventId || !targetEventTime) return;
+
+            let now = new Date().getTime();
+            let distance = targetEventTime - now;
+
+            let waitingContainer = document.getElementById('waiting-container');
+            let playerContainer = document.getElementById('player-container');
+            let liveStatus = document.getElementById('live-status');
+            let timerValue = document.getElementById('timer-value');
+
+            if (distance <= 0) {
+                waitingContainer.style.display = 'none';
+                playerContainer.style.display = 'block';
+                liveStatus.style.display = 'flex';
+                
+                if (!iframeLoaded && currentChannel) {
+                    const playerPlacement = document.getElementById('player-placement');
+                    playerPlacement.innerHTML = `<iframe src="https://player.twitch.tv/?channel=${currentChannel}&parent=localhost&parent=127.0.0.1&parent=ТВОЙ_НИК.github.io&autoplay=true&muted=true" allowfullscreen="true"></iframe>`;
+                    iframeLoaded = true;
+                }
+            } else {
+                waitingContainer.style.display = 'block';
+                playerContainer.style.display = 'none';
+
+                let days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                let hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                let minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                let seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+                let d = days < 10 ? "0" + days : days;
+                let h = hours < 10 ? "0" + hours : hours;
+                let m = minutes < 10 ? "0" + minutes : minutes;
+                let s = seconds < 10 ? "0" + seconds : seconds;
+
+                timerValue.innerText = d + ":" + h + ":" + m + ":" + s;
+                
+                iframeLoaded = false;
+                document.getElementById('player-placement').innerHTML = "";
+            }
+        }
+
+        setInterval(updateTimer, 1000);
+
+        function renderEventsList() {
+            let listView = document.getElementById('events-list-view');
+            if (!activeEventId) {
+                listView.innerHTML = '';
+                allEventsData.forEach(event => {
+                    let card = document.createElement('div');
+                    card.className = 'event-list-card';
+                    card.onclick = () => openEvent(event.id);
+                    
+                    let isLive = new Date().getTime() >= new Date(event.event_time).getTime();
+                    let statusHtml = isLive ? '<span style="color:#EE334E;">🔴 LIVE</span>' : '⏳ Скоро';
+
+                    card.innerHTML = `
+                        <div class="event-list-title">${event.title}</div>
+                        <div style="font-size: 13px; color: #666;">ℹ️ ${statusHtml}</div>
+                        <div class="event-list-action">📺 Смотреть ➔</div>
+                    `;
+                    listView.appendChild(card);
+                });
+            }
+        }
+
+        function openEvent(eventId) {
+            activeEventId = eventId;
+            let activeEvent = allEventsData.find(e => e.id === eventId);
+            
+            if (activeEvent) {
+                let listView = document.getElementById('events-list-view');
+                let detailView = document.getElementById('event-detail-view');
+                
+                listView.style.display = 'none';
+                
+                detailView.style.animation = 'none';
+                detailView.offsetHeight; 
+                detailView.style.animation = null; 
+                
+                detailView.style.display = 'block';
+                
+                updateActiveEventUI(activeEvent);
+                window.scrollTo(0, 0);
+            }
+        }
+
+        function goBackToEvents() {
+            activeEventId = null;
+            iframeLoaded = false;
+            
+            document.getElementById('player-placement').innerHTML = "";
+            
+            let listView = document.getElementById('events-list-view');
+            let detailView = document.getElementById('event-detail-view');
+            
+            detailView.style.display = 'none';
+            
+            listView.style.animation = 'none';
+            listView.offsetHeight;
+            listView.style.animation = null;
+            
+            listView.style.display = 'block';
+            
+            renderEventsList();
+        }
+
+        function updateActiveEventUI(eventData) {
+            targetEventTime = new Date(eventData.event_time).getTime();
+            currentChannel = eventData.twitch_channel;
+            
+            document.getElementById('event-title').innerText = eventData.title;
+            document.getElementById('pedestal-title').innerText = eventData.pedestal_title || '🏆 Пьедестал';
+            
+            document.getElementById('gold-winner').innerText = eventData.winners.gold.name;
+            document.getElementById('gold-team').innerText = eventData.winners.gold.team;
+            
+            document.getElementById('silver-winner').innerText = eventData.winners.silver.name;
+            document.getElementById('silver-team').innerText = eventData.winners.silver.team;
+            
+            document.getElementById('bronze-winner').innerText = eventData.winners.bronze.name;
+            document.getElementById('bronze-team').innerText = eventData.winners.bronze.team;
+            
+            let qualBtn = document.getElementById('btn-qualification');
+            if (isUserRegistered && eventData.is_qualification) {
+                qualBtn.style.display = 'block';
+            } else {
+                qualBtn.style.display = 'none';
+            }
+            
+            updateTimer();
+        }
+
+        async function joinQualification() {
+            try {
+                let response = await fetch(`${BACKEND_URL}/api/apply`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tg_id: tgUserId, event_id: activeEventId })
+                });
+                
+                let result = await response.json();
+                if (result.success) {
+                    tg.showPopup({
+                        title: 'Отбор',
+                        message: 'Ваша заявка успешно отправлена администратору!',
+                        buttons: [{type: 'ok'}]
+                    });
+                }
+            } catch (error) {
+                console.error("Ошибка отправки заявки", error);
+                tg.showPopup({ title: 'Ошибка', message: 'Не удалось отправить заявку', buttons: [{type: 'ok'}] });
+            }
+        }
+
+        fetchLiveUpdates();
+        setInterval(fetchLiveUpdates, 5000);
+
+        function switchTab(event, tabId) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+            
+            if (tabId === 'register' && activeEventId) {
+                document.getElementById('player-placement').innerHTML = "";
+                iframeLoaded = false;
+            }
+        }
+    </script>
+</body>
+</html>
