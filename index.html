@@ -207,7 +207,7 @@
                 let response = await fetch(`${BACKEND_URL}/api/data?tg_id=${tgUserId}`);
                 let data = await response.json();
                 
-                isUserRegistered = data.user.is_registered;
+                isUserRegistered = data.user.is_verified; 
                 updateRegistrationUI(data.user);
 
                 allEventsData = data.events;
@@ -268,8 +268,6 @@
                     step2.offsetHeight;
                     step2.style.animation = null;
                     step2.style.display = 'block';
-                    
-                    isUserRegistered = true;
                 }
             } catch (error) {
                 console.error("Ошибка регистрации", error);
@@ -277,13 +275,27 @@
             }
         }
 
-        function finishRegistration() {
-            tg.showPopup({
-                title: 'Ожидание проверки',
-                message: 'Отлично! Скоро система проверит ваше описание профиля.',
-                buttons: [{type: 'ok'}]
-            });
-            fetchLiveUpdates();
+        async function finishRegistration() {
+            try {
+                let response = await fetch(`${BACKEND_URL}/api/verify`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tg_id: tgUserId })
+                });
+                let result = await response.json();
+                
+                if (result.success) {
+                    tg.showPopup({
+                        title: 'Готово!',
+                        message: 'Ваш аккаунт успешно подтвержден!',
+                        buttons: [{type: 'ok'}]
+                    });
+                    fetchLiveUpdates(); 
+                }
+            } catch (error) {
+                console.error("Ошибка верификации", error);
+                tg.showPopup({ title: 'Ошибка', message: 'Не удалось завершить верификацию', buttons: [{type: 'ok'}] });
+            }
         }
 
         function updateTimer() {
@@ -304,7 +316,7 @@
                 
                 if (!iframeLoaded && currentChannel) {
                     const playerPlacement = document.getElementById('player-placement');
-                    playerPlacement.innerHTML = `<iframe src="https://player.twitch.tv/?channel=${currentChannel}&parent=localhost&parent=127.0.0.1&parent=ТВОЙ_НИК.github.io&autoplay=true&muted=true" allowfullscreen="true"></iframe>`;
+                    playerPlacement.innerHTML = `<iframe src="https://player.twitch.tv/?channel=${currentChannel}&parent=localhost&parent=127.0.0.1&parent=robloxcenter.github.io&autoplay=true&muted=true" allowfullscreen="true"></iframe>`;
                     iframeLoaded = true;
                 }
             } else {
